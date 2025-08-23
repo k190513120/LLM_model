@@ -7,6 +7,8 @@ Gemini 2.5 Pro 视频分析工具
 
 import os
 import sys
+import requests
+import json
 from typing import Optional
 from google import genai
 
@@ -20,30 +22,65 @@ class GeminiVideoAnalyzer:
             api_key: Google AI API密钥
         """
         self.client = genai.Client(api_key=api_key)
+    
+    def send_to_webhook(self, webhook_url: str, data: dict) -> bool:
+        """发送数据到webhook
         
-    def analyze_youtube_video(self, prompt: str, youtube_url: str, model: str = "gemini-2.0-flash-exp") -> str:
+        Args:
+            webhook_url: webhook地址
+            data: 要发送的数据
+            
+        Returns:
+            发送是否成功
+        """
+        try:
+            headers = {
+                'Content-Type': 'application/json',
+                'User-Agent': 'Gemini-Video-Analyzer/1.0'
+            }
+            
+            response = requests.post(
+                webhook_url,
+                json=data,
+                headers=headers,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                print(f"✓ 成功发送到webhook: {webhook_url}")
+                return True
+            else:
+                print(f"✗ Webhook响应错误: {response.status_code}")
+                return False
+                
+        except requests.exceptions.RequestException as e:
+            print(f"✗ 发送到webhook失败: {str(e)}")
+            return False
+        
+    def analyze_youtube_video(self, prompt: str, youtube_url: str, model: str = "gemini-2.0-flash-exp", webhook_url: Optional[str] = None) -> str:
         """分析YouTube视频
         
         Args:
             prompt: 用户提示词
             youtube_url: YouTube视频链接
             model: 使用的模型名称
+            webhook_url: 可选的webhook地址，用于发送分析结果
             
         Returns:
             分析结果文本
         """
         try:
-            # 构建请求内容
-            contents = [
-                prompt,
-                {
-                    "type": "video",
-                    "video": {
-                        "source": "youtube",
-                        "url": youtube_url
-                    }
-                }
-            ]
+            # 构建请求内容 - 使用官方推荐的格式
+            from google.genai import types
+            
+            contents = types.Content(
+                parts=[
+                    types.Part(
+                        file_data=types.FileData(file_uri=youtube_url)
+                    ),
+                    types.Part(text=prompt)
+                ]
+            )
             
             # 调用Gemini API
             response = self.client.models.generate_content(
@@ -51,18 +88,47 @@ class GeminiVideoAnalyzer:
                 contents=contents
             )
             
-            return response.text
+            result = response.text
+            
+            # 如果提供了webhook地址，发送结果
+            if webhook_url:
+                webhook_data = {
+                    "type": "youtube_video_analysis",
+                    "prompt": prompt,
+                    "video_url": youtube_url,
+                    "model": model,
+                    "result": result,
+                    "timestamp": __import__('datetime').datetime.now().isoformat()
+                }
+                self.send_to_webhook(webhook_url, webhook_data)
+            
+            return result
             
         except Exception as e:
-            return f"分析过程中出现错误: {str(e)}"
+            error_msg = f"分析过程中出现错误: {str(e)}"
+            
+            # 如果提供了webhook地址，也发送错误信息
+            if webhook_url:
+                webhook_data = {
+                    "type": "youtube_video_analysis",
+                    "prompt": prompt,
+                    "video_url": youtube_url,
+                    "model": model,
+                    "error": error_msg,
+                    "timestamp": __import__('datetime').datetime.now().isoformat()
+                }
+                self.send_to_webhook(webhook_url, webhook_data)
+            
+            return error_msg
     
-    def analyze_local_video(self, prompt: str, video_path: str, model: str = "gemini-2.0-flash-exp") -> str:
+    def analyze_local_video(self, prompt: str, video_path: str, model: str = "gemini-2.0-flash-exp", webhook_url: Optional[str] = None) -> str:
         """分析本地视频文件
         
         Args:
             prompt: 用户提示词
             video_path: 本地视频文件路径
             model: 使用的模型名称
+            webhook_url: 可选的webhook地址，用于发送分析结果
             
         Returns:
             分析结果文本
@@ -95,13 +161,41 @@ class GeminiVideoAnalyzer:
                 contents=contents
             )
             
+            result = response.text
+            
             # 清理上传的文件
             self.client.files.delete(name=uploaded_file.name)
             
-            return response.text
+            # 如果提供了webhook地址，发送结果
+            if webhook_url:
+                webhook_data = {
+                    "type": "local_video_analysis",
+                    "prompt": prompt,
+                    "video_path": video_path,
+                    "model": model,
+                    "result": result,
+                    "timestamp": __import__('datetime').datetime.now().isoformat()
+                }
+                self.send_to_webhook(webhook_url, webhook_data)
+            
+            return result
             
         except Exception as e:
-            return f"分析过程中出现错误: {str(e)}"
+            error_msg = f"分析过程中出现错误: {str(e)}"
+            
+            # 如果提供了webhook地址，也发送错误信息
+            if webhook_url:
+                webhook_data = {
+                    "type": "local_video_analysis",
+                    "prompt": prompt,
+                    "video_path": video_path,
+                    "model": model,
+                    "error": error_msg,
+                    "timestamp": __import__('datetime').datetime.now().isoformat()
+                }
+                self.send_to_webhook(webhook_url, webhook_data)
+            
+            return error_msg
 
 def main():
     """主函数"""
@@ -127,6 +221,16 @@ def main():
         
         choice = input("\n请选择 (1-3): ").strip()
         
+        # 如果选择分析模式，询问是否使用webhook
+        webhook_url = None
+        if choice in ['1', '2']:
+            use_webhook = input("\n是否使用webhook发送结果? (y/n): ").strip().lower()
+            if use_webhook in ['y', 'yes', '是']:
+                webhook_url = input("请输入webhook地址: ").strip()
+                if not webhook_url:
+                    print("警告: webhook地址为空，将不发送结果")
+                    webhook_url = None
+        
         if choice == '1':
             # YouTube视频分析
             youtube_url = input("\n请输入YouTube视频链接: ").strip()
@@ -139,7 +243,7 @@ def main():
                 prompt = "请描述这个视频的内容"
             
             print("\n正在分析视频，请稍候...")
-            result = analyzer.analyze_youtube_video(prompt, youtube_url)
+            result = analyzer.analyze_youtube_video(prompt, youtube_url, webhook_url=webhook_url)
             
             print("\n=== 分析结果 ===")
             print(result)
@@ -156,7 +260,7 @@ def main():
                 prompt = "请描述这个视频的内容"
             
             print("\n正在分析视频，请稍候...")
-            result = analyzer.analyze_local_video(prompt, video_path)
+            result = analyzer.analyze_local_video(prompt, video_path, webhook_url=webhook_url)
             
             print("\n=== 分析结果 ===")
             print(result)
