@@ -21,7 +21,7 @@ class GeminiVideoAnalyzer:
         Args:
             api_key: Google AI API密钥
         """
-        self.client = genai.Client(api_key=api_key)
+        genai.configure(api_key=api_key)
     
     def send_to_webhook(self, webhook_url: str, data: dict) -> bool:
         """发送数据到webhook
@@ -70,23 +70,15 @@ class GeminiVideoAnalyzer:
             分析结果文本
         """
         try:
-            # 构建请求内容 - 使用官方推荐的格式
-            from google.genai import types
-            
-            contents = types.Content(
-                parts=[
-                    types.Part(
-                        file_data=types.FileData(file_uri=youtube_url)
-                    ),
-                    types.Part(text=prompt)
-                ]
-            )
+            # 构建请求内容 - 直接使用YouTube URL
+            contents = [
+                prompt,
+                youtube_url
+            ]
             
             # 调用Gemini API
-            response = self.client.models.generate_content(
-                model=model,
-                contents=contents
-            )
+            model_instance = genai.GenerativeModel(model)
+            response = model_instance.generate_content(contents)
             
             result = response.text
             
@@ -136,15 +128,15 @@ class GeminiVideoAnalyzer:
         try:
             # 上传视频文件
             print("正在上传视频文件...")
-            uploaded_file = self.client.files.upload(path=video_path)
+            uploaded_file = genai.upload_file(path=video_path)
             
             # 等待文件处理完成
             print("等待文件处理完成...")
-            file_info = self.client.files.get(name=uploaded_file.name)
+            file_info = genai.get_file(name=uploaded_file.name)
             while file_info.state.name == "PROCESSING":
                 import time
                 time.sleep(2)
-                file_info = self.client.files.get(name=uploaded_file.name)
+                file_info = genai.get_file(name=uploaded_file.name)
             
             if file_info.state.name == "FAILED":
                 return "视频文件处理失败"
@@ -156,15 +148,13 @@ class GeminiVideoAnalyzer:
             ]
             
             # 调用Gemini API
-            response = self.client.models.generate_content(
-                model=model,
-                contents=contents
-            )
+            model_instance = genai.GenerativeModel(model)
+            response = model_instance.generate_content(contents)
             
             result = response.text
             
             # 清理上传的文件
-            self.client.files.delete(name=uploaded_file.name)
+            genai.delete_file(name=uploaded_file.name)
             
             # 如果提供了webhook地址，发送结果
             if webhook_url:
