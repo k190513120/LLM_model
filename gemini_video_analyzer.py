@@ -57,7 +57,7 @@ class GeminiVideoAnalyzer:
             print(f"✗ 发送到webhook失败: {str(e)}")
             return False
         
-    def analyze_youtube_video(self, prompt: str, youtube_url: str, model: str = "gemini-2.5-pro", webhook_url: Optional[str] = None) -> str:
+    def analyze_youtube_video(self, prompt: str, youtube_url: str, model: str = "gemini-2.5-flash", webhook_url: Optional[str] = None) -> str:
         """分析YouTube视频
         
         Args:
@@ -70,11 +70,17 @@ class GeminiVideoAnalyzer:
             分析结果文本
         """
         try:
-            # 构建请求内容 - 直接使用YouTube URL
-            contents = [
-                prompt,
-                youtube_url
-            ]
+            # 构建请求内容 - 使用官方推荐的file_data格式
+            contents = [{
+                "parts": [
+                    {"text": prompt},
+                    {
+                        "file_data": {
+                            "file_uri": youtube_url
+                        }
+                    }
+                ]
+            }]
             
             # 调用Gemini API
             model_instance = genai.GenerativeModel(model)

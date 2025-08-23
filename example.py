@@ -47,7 +47,7 @@ def analyze_youtube_video_example():
         
         # 调用Gemini API
         response = client.models.generate_content(
-            model="gemini-2.5-pro",  # 使用最新的模型
+            model="gemini-2.5-flash",  # 使用最新的模型
             contents=contents
         )
         
@@ -103,7 +103,7 @@ def analyze_with_custom_prompt():
         ]
         
         response = client.models.generate_content(
-            model="gemini-2.5-pro",
+            model="gemini-2.5-flash",
             contents=contents
         )
         
