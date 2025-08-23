@@ -57,7 +57,7 @@ class GeminiVideoAnalyzer:
             print(f"✗ 发送到webhook失败: {str(e)}")
             return False
         
-    def analyze_youtube_video(self, prompt: str, youtube_url: str, model: str = "gemini-2.0-flash-exp", webhook_url: Optional[str] = None) -> str:
+    def analyze_youtube_video(self, prompt: str, youtube_url: str, model: str = "gemini-2.5-pro", webhook_url: Optional[str] = None) -> str:
         """分析YouTube视频
         
         Args:
@@ -113,7 +113,7 @@ class GeminiVideoAnalyzer:
             
             return error_msg
     
-    def analyze_local_video(self, prompt: str, video_path: str, model: str = "gemini-2.0-flash-exp", webhook_url: Optional[str] = None) -> str:
+    def analyze_local_video(self, prompt: str, video_path: str, model: str = "gemini-2.5-pro", webhook_url: Optional[str] = None) -> str:
         """分析本地视频文件
         
         Args:

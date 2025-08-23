@@ -48,8 +48,8 @@ def main():
     )
     parser.add_argument(
         '--model', '-m',
-        default='gemini-2.0-flash-exp',
-        help='使用的模型名称（默认: gemini-2.0-flash-exp）'
+        default='gemini-2.5-pro',
+        help='使用的模型名称（默认: gemini-2.5-pro）'
     )
     parser.add_argument(
         '--api-key', '-k',
