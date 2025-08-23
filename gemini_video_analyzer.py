@@ -10,7 +10,7 @@ import sys
 import requests
 import json
 from typing import Optional
-from google import genai
+import google.generativeai as genai
 
 class GeminiVideoAnalyzer:
     """Gemini视频分析器"""
