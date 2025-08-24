@@ -11,10 +11,22 @@ on:
         description: '分析提示词'
         required: true
         default: '请分析这个视频的主要内容'
+      video_type:
+        description: '视频类型'
+        required: true
+        type: choice
+        options:
+          - 'youtube'
+          - 'network_url'
+        default: 'youtube'
       youtube_url:
         description: 'YouTube视频链接'
-        required: true
+        required: false
         default: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+      network_url:
+        description: '网络视频链接（非YouTube）'
+        required: false
+        default: ''
       webhook_url:
         description: 'Webhook地址（可选）'
         required: false
@@ -42,13 +54,26 @@ jobs:
       env:
         GOOGLE_AI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
       run: |
-        if [ -n "${{ github.event.inputs.webhook_url }}" ]; then
-          python cli_analyzer.py \
-            --prompt "${{ github.event.inputs.prompt }}" \
-            --youtube "${{ github.event.inputs.youtube_url }}" \
-            --webhook "${{ github.event.inputs.webhook_url }}"
-        else
-          python cli_analyzer.py \
-            --prompt "${{ github.event.inputs.prompt }}" \
-            --youtube "${{ github.event.inputs.youtube_url }}"
+        if [ "${{ github.event.inputs.video_type }}" = "youtube" ]; then
+          if [ -n "${{ github.event.inputs.webhook_url }}" ]; then
+            python cli_analyzer.py \
+              --prompt "${{ github.event.inputs.prompt }}" \
+              --youtube "${{ github.event.inputs.youtube_url }}" \
+              --webhook "${{ github.event.inputs.webhook_url }}"
+          else
+            python cli_analyzer.py \
+              --prompt "${{ github.event.inputs.prompt }}" \
+              --youtube "${{ github.event.inputs.youtube_url }}"
+          fi
+        elif [ "${{ github.event.inputs.video_type }}" = "network_url" ]; then
+          if [ -n "${{ github.event.inputs.webhook_url }}" ]; then
+            python cli_analyzer.py \
+              --prompt "${{ github.event.inputs.prompt }}" \
+              --url "${{ github.event.inputs.network_url }}" \
+              --webhook "${{ github.event.inputs.webhook_url }}"
+          else
+            python cli_analyzer.py \
+              --prompt "${{ github.event.inputs.prompt }}" \
+              --url "${{ github.event.inputs.network_url }}"
+          fi
         fi

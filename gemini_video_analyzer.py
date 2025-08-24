@@ -9,6 +9,10 @@ import os
 import sys
 import requests
 import json
+import tempfile
+import urllib.request
+import urllib.parse
+import mimetypes
 from typing import Optional
 import google.generativeai as genai
 
@@ -199,6 +203,130 @@ class GeminiVideoAnalyzer:
                 self.send_to_webhook(webhook_url, webhook_data)
             
             return error_msg
+    
+    def download_video(self, video_url: str) -> str:
+        """从网络链接下载视频到临时文件
+        
+        Args:
+            video_url: 视频链接
+            
+        Returns:
+            临时文件路径
+        """
+        try:
+            print(f"正在下载视频: {video_url}")
+            
+            # 获取文件扩展名
+            parsed_url = urllib.parse.urlparse(video_url)
+            path = parsed_url.path
+            
+            # 尝试从URL获取文件扩展名
+            if '.' in path:
+                ext = os.path.splitext(path)[1]
+                if ext.lower() not in ['.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv']:
+                    ext = '.mp4'  # 默认扩展名
+            else:
+                ext = '.mp4'  # 默认扩展名
+            
+            # 创建临时文件
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
+            temp_path = temp_file.name
+            temp_file.close()
+            
+            # 下载视频
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            
+            req = urllib.request.Request(video_url, headers=headers)
+            
+            with urllib.request.urlopen(req) as response:
+                total_size = int(response.headers.get('Content-Length', 0))
+                downloaded = 0
+                
+                with open(temp_path, 'wb') as f:
+                    while True:
+                        chunk = response.read(8192)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        
+                        if total_size > 0:
+                            progress = (downloaded / total_size) * 100
+                            print(f"\r下载进度: {progress:.1f}%", end='', flush=True)
+            
+            print(f"\n✓ 视频下载完成: {temp_path}")
+            return temp_path
+            
+        except Exception as e:
+            print(f"\n✗ 视频下载失败: {str(e)}")
+            raise
+    
+    def analyze_video_url(self, prompt: str, video_url: str, model: str = "gemini-2.5-flash", webhook_url: Optional[str] = None) -> str:
+        """分析网络视频链接
+        
+        Args:
+            prompt: 用户提示词
+            video_url: 网络视频链接
+            model: 使用的模型名称
+            webhook_url: 可选的webhook地址，用于发送分析结果
+            
+        Returns:
+            分析结果文本
+        """
+        temp_path = None
+        try:
+            # 下载视频到临时文件
+            temp_path = self.download_video(video_url)
+            
+            # 使用本地视频分析方法
+            result = self.analyze_local_video(
+                prompt=prompt,
+                video_path=temp_path,
+                model=model,
+                webhook_url=None  # 不在这里发送webhook，在最后统一发送
+            )
+            
+            # 如果提供了webhook地址，发送结果
+            if webhook_url:
+                webhook_data = {
+                    "type": "video_url_analysis",
+                    "prompt": prompt,
+                    "video_url": video_url,
+                    "model": model,
+                    "result": result,
+                    "timestamp": __import__('datetime').datetime.now().isoformat()
+                }
+                self.send_to_webhook(webhook_url, webhook_data)
+            
+            return result
+            
+        except Exception as e:
+            error_msg = f"分析网络视频时出现错误: {str(e)}"
+            
+            # 如果提供了webhook地址，也发送错误信息
+            if webhook_url:
+                webhook_data = {
+                    "type": "video_url_analysis",
+                    "prompt": prompt,
+                    "video_url": video_url,
+                    "model": model,
+                    "error": error_msg,
+                    "timestamp": __import__('datetime').datetime.now().isoformat()
+                }
+                self.send_to_webhook(webhook_url, webhook_data)
+            
+            return error_msg
+            
+        finally:
+            # 清理临时文件
+            if temp_path and os.path.exists(temp_path):
+                try:
+                    os.unlink(temp_path)
+                    print(f"✓ 临时文件已清理: {temp_path}")
+                except Exception as e:
+                    print(f"⚠ 清理临时文件失败: {str(e)}")
 
 def main():
     """主函数"""
@@ -220,13 +348,14 @@ def main():
         print("\n选择分析模式:")
         print("1. 分析YouTube视频")
         print("2. 分析本地视频文件")
-        print("3. 退出")
+        print("3. 分析网络视频链接")
+        print("4. 退出")
         
-        choice = input("\n请选择 (1-3): ").strip()
+        choice = input("\n请选择 (1-4): ").strip()
         
         # 如果选择分析模式，询问是否使用webhook
         webhook_url = None
-        if choice in ['1', '2']:
+        if choice in ['1', '2', '3']:
             use_webhook = input("\n是否使用webhook发送结果? (y/n): ").strip().lower()
             if use_webhook in ['y', 'yes', '是']:
                 webhook_url = input("请输入webhook地址: ").strip()
@@ -269,6 +398,23 @@ def main():
             print(result)
             
         elif choice == '3':
+            # 网络视频链接分析
+            video_url = input("\n请输入网络视频链接: ").strip()
+            if not video_url:
+                print("错误: 视频链接不能为空")
+                continue
+                
+            prompt = input("请输入您的提示词: ").strip()
+            if not prompt:
+                prompt = "请描述这个视频的内容"
+            
+            print("\n正在下载并分析视频，请稍候...")
+            result = analyzer.analyze_video_url(prompt, video_url, webhook_url=webhook_url)
+            
+            print("\n=== 分析结果 ===")
+            print(result)
+            
+        elif choice == '4':
             print("\n感谢使用！")
             break
             

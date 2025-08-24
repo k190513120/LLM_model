@@ -13,13 +13,14 @@ from gemini_video_analyzer import GeminiVideoAnalyzer
 def main():
     """主函数 - 支持命令行参数"""
     parser = argparse.ArgumentParser(
-        description='Gemini视频分析工具 - 支持YouTube视频分析',
+        description='Gemini视频分析工具 - 支持YouTube视频、本地视频和网络视频链接分析',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 使用示例:
   python cli_analyzer.py --prompt "请分析这个视频的主要内容" --youtube "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
   python cli_analyzer.py --prompt "总结视频要点" --youtube "https://www.youtube.com/watch?v=dQw4w9WgXcQ" --webhook "https://webhook.site/your-id"
   python cli_analyzer.py --prompt "分析视频" --local "/path/to/video.mp4" --webhook "https://your-webhook.com/endpoint"
+  python cli_analyzer.py --prompt "分析网络视频" --url "https://example.com/video.mp4" --webhook "https://your-webhook.com/endpoint"
         """
     )
     
@@ -30,7 +31,7 @@ def main():
         help='分析提示词（必需）'
     )
     
-    # 视频源参数（二选一）
+    # 视频源参数（三选一）
     video_group = parser.add_mutually_exclusive_group(required=True)
     video_group.add_argument(
         '--youtube', '-y',
@@ -39,6 +40,10 @@ def main():
     video_group.add_argument(
         '--local', '-l',
         help='本地视频文件路径'
+    )
+    video_group.add_argument(
+        '--url', '-u',
+        help='网络视频链接（非YouTube）'
     )
     
     # 可选参数
@@ -100,6 +105,20 @@ def main():
             result = analyzer.analyze_local_video(
                 prompt=args.prompt,
                 video_path=args.local,
+                model=args.model,
+                webhook_url=args.webhook
+            )
+            
+        elif args.url:
+            print(f"网络视频链接: {args.url}")
+            if args.webhook:
+                print(f"Webhook: {args.webhook}")
+            
+            print("\n开始下载并分析网络视频...")
+            
+            result = analyzer.analyze_video_url(
+                prompt=args.prompt,
+                video_url=args.url,
                 model=args.model,
                 webhook_url=args.webhook
             )

@@ -6,9 +6,10 @@
 
 - 🎥 **YouTube视频分析**: 直接输入YouTube链接进行视频内容分析
 - 📁 **本地视频支持**: 上传本地视频文件进行分析
+- 🌐 **网络视频链接**: 支持分析任意网络视频链接（自动下载后分析）
 - 💻 **命令行工具**: 支持命令行模式使用
 - 🔗 **Webhook支持**: 分析结果可自动发送到指定的webhook地址
-- 🤖 **智能分析**: 基于Gemini 2.5 Pro的强大视频理解能力
+- 🤖 **智能分析**: 基于Gemini 2.5 Flash的强大视频理解能力
 
 ## 安装依赖
 
@@ -34,10 +35,11 @@ python gemini_video_analyzer.py
 2. 选择分析模式：
    - 输入 `1` 分析YouTube视频
    - 输入 `2` 分析本地视频文件
-   - 输入 `3` 退出程序
+   - 输入 `3` 分析网络视频链接
+   - 输入 `4` 退出程序
 
 3. 根据提示输入相应信息：
-   - YouTube链接或本地文件路径
+   - YouTube链接、本地文件路径或网络视频链接
    - 分析提示词
    - 是否使用webhook（可选）
 
@@ -63,12 +65,25 @@ python cli_analyzer.py --prompt "分析视频" --youtube "https://www.youtube.co
 python cli_analyzer.py --prompt "分析这个视频" --local "/path/to/video.mp4" --webhook "https://your-webhook.com/endpoint"
 ```
 
+#### 分析网络视频链接
+```bash
+# 分析网络视频链接（自动下载后分析）
+python cli_analyzer.py --prompt "分析这个网络视频" --url "https://example.com/video.mp4"
+
+# 使用webhook
+python cli_analyzer.py --prompt "总结网络视频内容" --url "https://example.com/video.mp4" --webhook "https://your-webhook.com/endpoint"
+
+# 指定模型
+python cli_analyzer.py --prompt "分析网络视频" --url "https://example.com/video.mp4" --model "gemini-2.5-flash"
+```
+
 #### 命令行参数说明
 - `--prompt, -p`: 分析提示词（必需）
 - `--youtube, -y`: YouTube视频链接
 - `--local, -l`: 本地视频文件路径
+- `--url, -u`: 网络视频链接（非YouTube）
 - `--webhook, -w`: Webhook地址（可选）
-- `--model, -m`: 使用的模型名称（默认: gemini-2.0-flash-exp）
+- `--model, -m`: 使用的模型名称（默认: gemini-2.5-flash）
 - `--api-key, -k`: Google AI API密钥（可选，优先使用环境变量）
 - `--help, -h`: 显示帮助信息
 
@@ -128,6 +143,45 @@ result = analyzer.analyze_local_video(
     webhook_url="https://your-webhook-url.com/endpoint"
 )
 ```
+
+## GitHub Actions 云端运行
+
+本项目支持在GitHub Actions中运行视频分析，无需本地环境配置。
+
+### 设置步骤
+
+1. **Fork本项目**到您的GitHub账户
+
+2. **配置API密钥**：
+   - 进入您的仓库设置 → Secrets and variables → Actions
+   - 添加新的Repository secret：
+     - Name: `GOOGLE_AI_API_KEY`
+     - Value: 您的Google AI API密钥
+
+3. **运行分析**：
+   - 进入Actions标签页
+   - 选择"Deploy Gemini Video Analyzer"工作流
+   - 点击"Run workflow"
+   - 填写参数：
+     - **分析提示词**: 您想要AI分析的内容
+     - **视频类型**: 选择"youtube"或"network_url"
+     - **YouTube视频链接**: 如果选择youtube类型
+     - **网络视频链接**: 如果选择network_url类型
+     - **Webhook地址**: 可选，用于接收分析结果
+
+### 优势
+
+- ✅ **无需本地环境**: 直接在GitHub云端运行
+- ✅ **自动下载**: 支持任意网络视频链接自动下载
+- ✅ **安全可靠**: API密钥通过GitHub Secrets安全管理
+- ✅ **完全免费**: 利用GitHub Actions的免费额度
+- ✅ **结果通知**: 支持webhook自动推送分析结果
+
+### 注意事项
+
+- GitHub Actions有运行时间限制（通常为6小时）
+- 大型视频文件可能需要较长下载时间
+- 建议使用webhook接收结果，避免在Actions日志中查找
 
 ## 环境变量配置（可选）
 
