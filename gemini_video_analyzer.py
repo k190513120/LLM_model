@@ -119,7 +119,7 @@ class GeminiVideoAnalyzer:
             
             return error_msg
     
-    def analyze_local_video(self, prompt: str, video_path: str, model: str = "gemini-2.5-pro", webhook_url: Optional[str] = None) -> str:
+    def analyze_local_video(self, prompt: str, video_path: str, model: str = "gemini-2.5-flash", webhook_url: Optional[str] = None) -> str:
         """分析本地视频文件
         
         Args:
@@ -147,11 +147,18 @@ class GeminiVideoAnalyzer:
             if file_info.state.name == "FAILED":
                 return "视频文件处理失败"
             
-            # 构建请求内容
-            contents = [
-                prompt,
-                uploaded_file
-            ]
+            # 构建请求内容 - 使用官方推荐的file_data格式
+            contents = [{
+                "parts": [
+                    {"text": prompt},
+                    {
+                        "file_data": {
+                            "mime_type": uploaded_file.mime_type,
+                            "file_uri": uploaded_file.uri
+                        }
+                    }
+                ]
+            }]
             
             # 调用Gemini API
             model_instance = genai.GenerativeModel(model)
