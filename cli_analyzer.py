@@ -13,24 +13,25 @@ from gemini_video_analyzer import GeminiVideoAnalyzer
 def main():
     """主函数 - 支持命令行参数"""
     parser = argparse.ArgumentParser(
-        description='Gemini视频分析工具 - 支持YouTube视频分析',
+        description='Gemini视频分析工具 - 支持YouTube视频、本地视频和网络视频链接分析',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 使用示例:
   python cli_analyzer.py --prompt "请分析这个视频的主要内容" --youtube "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
   python cli_analyzer.py --prompt "总结视频要点" --youtube "https://www.youtube.com/watch?v=dQw4w9WgXcQ" --webhook "https://webhook.site/your-id"
   python cli_analyzer.py --prompt "分析视频" --local "/path/to/video.mp4" --webhook "https://your-webhook.com/endpoint"
+  python cli_analyzer.py --prompt "分析网络视频" --url "https://example.com/video.mp4" --webhook "https://your-webhook.com/endpoint"
         """
     )
     
-    # 必需参数
+    # 可选参数
     parser.add_argument(
         '--prompt', '-p',
-        required=True,
-        help='分析提示词（必需）'
+        required=False,
+        help='分析提示词（可选，如果不提供则使用默认的YouTube科技视频分析提示词）'
     )
     
-    # 视频源参数（二选一）
+    # 视频源参数（三选一）
     video_group = parser.add_mutually_exclusive_group(required=True)
     video_group.add_argument(
         '--youtube', '-y',
@@ -39,6 +40,10 @@ def main():
     video_group.add_argument(
         '--local', '-l',
         help='本地视频文件路径'
+    )
+    video_group.add_argument(
+        '--url', '-u',
+        help='网络视频链接（非YouTube）'
     )
     
     # 可选参数
@@ -70,7 +75,10 @@ def main():
         analyzer = GeminiVideoAnalyzer(api_key)
         print("=== Gemini视频分析工具 - 命令行版本 ===")
         print(f"模型: {args.model}")
-        print(f"提示词: {args.prompt}")
+        if args.prompt:
+            print(f"提示词: {args.prompt}")
+        else:
+            print("使用默认的YouTube科技视频分析提示词")
         
         if args.youtube:
             print(f"YouTube视频: {args.youtube}")
@@ -79,8 +87,8 @@ def main():
             print("\n开始分析YouTube视频...")
             
             result = analyzer.analyze_youtube_video(
-                prompt=args.prompt,
                 youtube_url=args.youtube,
+                prompt=args.prompt,
                 model=args.model,
                 webhook_url=args.webhook
             )
@@ -98,8 +106,22 @@ def main():
             print("\n开始分析本地视频...")
             
             result = analyzer.analyze_local_video(
-                prompt=args.prompt,
                 video_path=args.local,
+                prompt=args.prompt,
+                model=args.model,
+                webhook_url=args.webhook
+            )
+            
+        elif args.url:
+            print(f"网络视频链接: {args.url}")
+            if args.webhook:
+                print(f"Webhook: {args.webhook}")
+            
+            print("\n开始下载并分析网络视频...")
+            
+            result = analyzer.analyze_video_url(
+                video_url=args.url,
+                prompt=args.prompt,
                 model=args.model,
                 webhook_url=args.webhook
             )

@@ -1,276 +1,204 @@
-# Gemini 2.5 Pro 视频分析工具
+# Gemini视频分析工具
 
-这是一个基于Google Gemini 2.5 Pro模型的智能视频分析工具，支持分析YouTube视频和本地视频文件。
+一个基于Google Gemini AI的YouTube视频分析工具，专门用于分析科技类视频内容，提供结构化的分析报告。
 
-## 功能特性
+## 🚀 主要功能
 
-- 🎥 **YouTube视频分析**: 直接输入YouTube链接进行视频内容分析
-- 📁 **本地视频支持**: 上传本地视频文件进行分析
-- 💻 **命令行工具**: 支持命令行模式使用
-- 🔗 **Webhook支持**: 分析结果可自动发送到指定的webhook地址
-- 🤖 **智能分析**: 基于Gemini 2.5 Pro的强大视频理解能力
+- **内置专业提示词**：集成了专门的YouTube科技视频分析专家提示词
+- **多种触发方式**：支持命令行、GitHub Actions手动触发和HTTP API触发
+- **结构化输出**：生成包含赞助信息、量化分析、内容摘要等维度的Markdown报告
+- **灵活配置**：支持自定义提示词和webhook推送
 
-## 安装依赖
+## 📋 分析维度
 
+### 1. 赞助信息分析
+- 判断视频的商业合作性质
+- 识别明确赞助、潜在合作或无赞助情况
+
+### 2. 核心量化分析
+- 品牌/产品提及时长统计
+- 视频占比计算
+- 好感度评分（1-5分）
+- 正负面观点总结
+
+### 3. 内容摘要与分类
+- 视频类型识别
+- 内容简介生成
+- KOL情感倾向分析
+- 关键引述摘录
+
+### 4. 详细评测维度分析
+- 设计外观、屏幕、性能等维度评价
+- 产品对比分析
+- 生态系统评估
+
+## 🛠️ 安装和配置
+
+### 1. 环境要求
+- Python 3.7+
+- Google AI API密钥
+
+### 2. 安装依赖
 ```bash
 pip install -r requirements.txt
 ```
 
-## 获取API密钥
-
-1. 访问 [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. 创建新的API密钥
-3. 复制密钥备用
-
-## 使用方法
-
-### 交互式使用
-
-1. 运行程序：
-```bash
-python gemini_video_analyzer.py
+### 3. 配置API密钥
+创建 `.env` 文件并添加：
+```
+GOOGLE_AI_API_KEY=your_api_key_here
 ```
 
-2. 选择分析模式：
-   - 输入 `1` 分析YouTube视频
-   - 输入 `2` 分析本地视频文件
-   - 输入 `3` 退出程序
+## 📖 使用方法
 
-3. 根据提示输入相应信息：
-   - YouTube链接或本地文件路径
-   - 分析提示词
-   - 是否使用webhook（可选）
+### 1. 命令行使用
 
-### 命令行使用
-
-使用 `cli_analyzer.py` 进行命令行操作：
-
-#### 分析YouTube视频
+#### 使用默认提示词（推荐）
 ```bash
-# 基本使用
-python cli_analyzer.py --prompt "请分析这个视频的主要内容" --youtube "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+# 分析YouTube视频
+python3 cli_analyzer.py --youtube "https://www.youtube.com/watch?v=VIDEO_ID"
 
-# 使用webhook
-python cli_analyzer.py --prompt "总结视频要点" --youtube "https://www.youtube.com/watch?v=dQw4w9WgXcQ" --webhook "https://webhook.site/your-id"
-
-# 指定模型
-python cli_analyzer.py --prompt "分析视频" --youtube "https://www.youtube.com/watch?v=dQw4w9WgXcQ" --model "gemini-2.5-flash"
-```
-
-#### 分析本地视频
-```bash
 # 分析本地视频文件
-python cli_analyzer.py --prompt "分析这个视频" --local "/path/to/video.mp4" --webhook "https://your-webhook.com/endpoint"
+python3 cli_analyzer.py --local "/path/to/video.mp4"
+
+# 分析网络视频链接
+python3 cli_analyzer.py --url "https://example.com/video.mp4"
 ```
 
-#### 命令行参数说明
-- `--prompt, -p`: 分析提示词（必需）
-- `--youtube, -y`: YouTube视频链接
-- `--local, -l`: 本地视频文件路径
-- `--webhook, -w`: Webhook地址（可选）
-- `--model, -m`: 使用的模型名称（默认: gemini-2.0-flash-exp）
-- `--api-key, -k`: Google AI API密钥（可选，优先使用环境变量）
-- `--help, -h`: 显示帮助信息
-
-### Webhook功能
-
-Webhook功能允许将分析结果自动发送到指定的HTTP端点，适用于集成到其他系统或自动化工作流程中。
-
-#### Webhook数据格式
-
-发送到webhook的JSON数据包含以下字段:
-
-```json
-{
-  "type": "youtube_video_analysis",  // 或 "local_video_analysis"
-  "prompt": "用户输入的提示词",
-  "video_url": "视频链接",  // YouTube分析时
-  "video_path": "视频路径",  // 本地视频分析时
-  "model": "gemini-2.0-flash-exp",
-  "result": "AI分析结果文本",
-  "timestamp": "2024-01-01T12:00:00.000000"
-}
+#### 使用自定义提示词
+```bash
+python3 cli_analyzer.py --prompt "你的自定义提示词" --youtube "VIDEO_URL"
 ```
 
-#### 错误情况
-
-如果分析过程中出现错误，webhook将接收包含错误信息的数据:
-
-```json
-{
-  "type": "youtube_video_analysis",
-  "prompt": "用户输入的提示词",
-  "video_url": "视频链接",
-  "model": "gemini-2.0-flash-exp",
-  "error": "错误信息",
-  "timestamp": "2024-01-01T12:00:00.000000"
-}
+#### 配置webhook推送
+```bash
+python3 cli_analyzer.py --youtube "VIDEO_URL" --webhook "https://your-webhook-url.com"
 ```
 
-#### 编程方式使用Webhook
+### 2. GitHub Actions使用
+
+#### 手动触发
+1. 访问仓库的Actions页面
+2. 选择 "Deploy Gemini Video Analyzer" 工作流
+3. 点击 "Run workflow" 并填入参数：
+   - `prompt`（可选）：自定义提示词
+   - `video_type`：选择 `youtube`、`local` 或 `url`
+   - `video_input`：视频链接或文件路径
+   - `webhook_url`（可选）：结果推送地址
+
+#### HTTP API触发
+详细说明请查看 [HTTP_TRIGGER_GUIDE.md](HTTP_TRIGGER_GUIDE.md) 文件。
+
+**快速示例：**
+```bash
+curl -X POST \
+  -H "Authorization: token YOUR_GITHUB_TOKEN" \
+  -H "Accept: application/vnd.github.v3+json" \
+  "https://api.github.com/repos/YOUR_USERNAME/YOUR_REPO/dispatches" \
+  -d '{
+    "event_type": "analyze_video",
+    "client_payload": {
+      "video_type": "youtube",
+      "video_input": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    }
+  }'
+```
+
+### 3. Python代码集成
 
 ```python
 from gemini_video_analyzer import GeminiVideoAnalyzer
 
-analyzer = GeminiVideoAnalyzer(api_key="your-api-key")
+# 初始化分析器
+analyzer = GeminiVideoAnalyzer(api_key="your_api_key")
 
-# 分析YouTube视频并发送到webhook
+# 使用默认提示词分析
+result = analyzer.analyze_youtube_video("https://www.youtube.com/watch?v=VIDEO_ID")
+
+# 使用自定义提示词分析
 result = analyzer.analyze_youtube_video(
-    prompt="描述视频内容",
-    youtube_url="https://www.youtube.com/watch?v=example",
-    webhook_url="https://your-webhook-url.com/endpoint"
+    "https://www.youtube.com/watch?v=VIDEO_ID",
+    prompt="你的自定义提示词"
 )
 
-# 分析本地视频并发送到webhook
-result = analyzer.analyze_local_video(
-    prompt="分析视频场景",
-    video_path="/path/to/video.mp4",
-    webhook_url="https://your-webhook-url.com/endpoint"
-)
+print(result)
 ```
 
-## 环境变量配置（可选）
+## 🔧 配置选项
 
-为了避免每次都输入API密钥，可以设置环境变量:
+### 环境变量
+- `GOOGLE_AI_API_KEY`：Google AI API密钥（必需）
+- `GEMINI_MODEL`：使用的模型名称（默认：gemini-1.5-flash）
 
-```bash
-export GOOGLE_AI_API_KEY="your-api-key-here"
-```
+### GitHub Secrets
+在GitHub仓库设置中添加以下Secrets：
+- `GOOGLE_AI_API_KEY`：你的Google AI API密钥
 
-## 支持的视频格式
+### Personal Access Token（HTTP触发需要）
+1. 访问 GitHub Settings > Developer settings > Personal access tokens
+2. 创建新token，至少需要 `repo` 权限
+3. 在HTTP请求中使用该token进行认证
 
-### YouTube视频
-- 支持标准YouTube链接格式
-- 示例: `https://www.youtube.com/watch?v=dQw4w9WgXcQ`
-
-### 本地视频文件
-- MP4 (.mp4)
-- MOV (.mov)
-- AVI (.avi)
-- MKV (.mkv)
-- WebM (.webm)
-
-## 提示词示例
-
-以下是一些有效的分析提示词示例:
-
-### 基础分析
-- "请描述这个视频的主要内容"
-- "总结视频中的关键信息"
-- "分析视频的主题和要点"
-
-### 详细分析
-- "详细描述视频中的场景、人物和动作"
-- "分析视频的情感色彩和氛围"
-- "识别视频中的文字和标识"
-
-### 专业分析
-- "从教育角度分析这个视频的价值"
-- "评估视频的制作质量和技术特点"
-- "分析视频中的商业元素和营销策略"
-
-## GitHub部署
-
-### 1. 克隆或Fork项目
-```bash
-git clone https://github.com/your-username/gemini-video-analyzer.git
-cd gemini-video-analyzer
-```
-
-### 2. 设置GitHub Secrets
-在GitHub仓库设置中添加以下Secret：
-- `GOOGLE_AI_API_KEY`: 你的Google AI API密钥
-
-### 3. 使用GitHub Actions
-
-#### 手动触发视频分析
-1. 进入GitHub仓库的Actions页面
-2. 选择"Deploy Gemini Video Analyzer"工作流
-3. 点击"Run workflow"
-4. 输入参数：
-   - **prompt**: 分析提示词
-   - **youtube_url**: YouTube视频链接
-   - **webhook_url**: Webhook地址（可选）
-5. 点击"Run workflow"开始分析
-
-#### 自动触发
-- 推送代码到main/master分支时自动运行测试
-- Pull Request时自动运行测试
-
-## 项目结构
+## 📁 项目结构
 
 ```
-gemini-video-analyzer/
-├── .github/
-│   └── workflows/
-│       └── deploy.yml          # GitHub Actions工作流
-├── gemini_video_analyzer.py    # 主程序文件
-├── cli_analyzer.py             # 命令行版本
+.
+├── gemini_video_analyzer.py    # 核心分析器类
+├── cli_analyzer.py             # 命令行工具
 ├── example.py                  # 使用示例
-├── webhook_example.py          # Webhook功能示例
+├── deploy.sh                   # 部署脚本
 ├── requirements.txt            # 依赖包列表
-├── .gitignore                  # Git忽略文件
+├── .github/workflows/
+│   └── deploy.yml             # GitHub Actions工作流
+├── HTTP_TRIGGER_GUIDE.md       # HTTP触发详细指南
 └── README.md                   # 项目说明文档
 ```
 
-## 注意事项
+## 🎯 输出格式
 
-1. **API配额**: Google AI API有使用配额限制，请合理使用
-2. **视频大小**: 本地视频文件建议小于100MB
-3. **网络连接**: 分析YouTube视频需要稳定的网络连接
-4. **隐私保护**: 请勿上传包含敏感信息的视频
+分析结果以结构化的Markdown格式输出，包含：
 
-## 故障排除
+```markdown
+# YouTube 视频分析报告
 
-### 常见错误
+### **1. 赞助信息分析**
+- **判断结果**: [明确赞助/可能存在合作/无明显赞助]
+- **判断依据**: [具体依据]
 
-1. **API密钥无效**
-   - 检查API密钥是否正确
-   - 确认API密钥已启用Gemini API访问权限
+### **2. 核心量化分析**
+| 提及的品牌/产品 | 提及总时长 (秒) | 视频占比 (%) | 好感度评分 (1-5) | 核心观点 |
 
-2. **YouTube视频无法访问**
-   - 确认视频链接格式正确
-   - 检查视频是否为公开状态
-   - 确认网络连接正常
+### **3. 内容摘要与分类**
+- **视频类型**: [类型]
+- **内容简介**: [简介]
+- **KOL 总体情感倾向**: [倾向]
+- **关键引述**: [引述]
 
-3. **本地视频上传失败**
-   - 检查视频文件格式是否支持
-   - 确认文件大小不超过限制
-   - 检查文件路径是否正确
+### **4. 详细评测维度分析**
+[各维度详细分析]
+```
 
-### 获取帮助
+## 🚀 部署到GitHub
 
-如果遇到问题，请检查:
-1. Python版本 (推荐3.8+)
-2. 依赖包是否正确安装
-3. API密钥权限设置
-4. 网络连接状态
+1. 运行部署脚本：
+```bash
+bash deploy.sh
+```
 
-## 技术说明
+2. 按照脚本提示完成GitHub仓库设置
 
-本工具基于以下技术构建:
-- **Google Gemini 2.5 Pro**: 提供强大的视频理解能力
-- **Flask**: Web框架，提供用户界面
-- **Google AI Python SDK**: 官方Python SDK
+3. 配置必要的Secrets和Personal Access Token
 
-## 更新日志
+## 🤝 贡献
 
-### v1.2.0
-- 新增命令行版本 `cli_analyzer.py`，支持参数化调用
-- 添加GitHub Actions工作流，支持自动化部署和测试
-- 支持通过GitHub Actions手动触发视频分析
-- 完善项目结构，添加.gitignore和部署文档
-- 修复YouTube视频分析API格式问题
+欢迎提交Issue和Pull Request来改进这个项目！
 
-### v1.1.0
-- 新增Webhook功能支持
-- 分析结果可自动发送到指定HTTP端点
-- 支持成功和错误状态的webhook通知
-- 添加webhook使用示例和文档
-- 优化错误处理机制
+## 📄 许可证
 
-### v1.0.0
-- 初始版本发布
-- 支持YouTube视频分析
-- 支持本地视频文件分析
-- 提供交互式命令行工具
+MIT License
+
+## 🔗 相关链接
+
+- [Google AI Studio](https://aistudio.google.com/)
+- [GitHub Actions文档](https://docs.github.com/en/actions)
+- [Gemini API文档](https://ai.google.dev/docs)

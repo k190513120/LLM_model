@@ -8,22 +8,36 @@ on:
   workflow_dispatch:
     inputs:
       prompt:
-        description: '分析提示词'
+        description: '分析提示词（可选，留空使用默认的YouTube科技视频分析提示词）'
+        required: false
+        default: ''
+      video_type:
+        description: '视频类型'
         required: true
-        default: '请分析这个视频的主要内容'
+        type: choice
+        options:
+          - 'youtube'
+          - 'network_url'
+        default: 'youtube'
       youtube_url:
         description: 'YouTube视频链接'
-        required: true
+        required: false
         default: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+      network_url:
+        description: '网络视频链接（非YouTube）'
+        required: false
+        default: ''
       webhook_url:
         description: 'Webhook地址（可选）'
         required: false
         default: ''
+  repository_dispatch:
+    types: [analyze-video]
 
 jobs:
   analyze-video:
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch'
     
     steps:
     - uses: actions/checkout@v4
@@ -38,17 +52,69 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     
+    - name: Set Variables
+      id: vars
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "prompt=${{ github.event.inputs.prompt }}" >> $GITHUB_OUTPUT
+          echo "video_type=${{ github.event.inputs.video_type }}" >> $GITHUB_OUTPUT
+          echo "youtube_url=${{ github.event.inputs.youtube_url }}" >> $GITHUB_OUTPUT
+          echo "network_url=${{ github.event.inputs.network_url }}" >> $GITHUB_OUTPUT
+          echo "webhook_url=${{ github.event.inputs.webhook_url }}" >> $GITHUB_OUTPUT
+        elif [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+          echo "prompt=${{ github.event.client_payload.prompt }}" >> $GITHUB_OUTPUT
+          echo "video_type=${{ github.event.client_payload.video_type }}" >> $GITHUB_OUTPUT
+          echo "youtube_url=${{ github.event.client_payload.youtube_url }}" >> $GITHUB_OUTPUT
+          echo "network_url=${{ github.event.client_payload.network_url }}" >> $GITHUB_OUTPUT
+          echo "webhook_url=${{ github.event.client_payload.webhook_url }}" >> $GITHUB_OUTPUT
+        fi
+    
     - name: Run Video Analysis
       env:
         GOOGLE_AI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
       run: |
-        if [ -n "${{ github.event.inputs.webhook_url }}" ]; then
-          python cli_analyzer.py \
-            --prompt "${{ github.event.inputs.prompt }}" \
-            --youtube "${{ github.event.inputs.youtube_url }}" \
-            --webhook "${{ github.event.inputs.webhook_url }}"
-        else
-          python cli_analyzer.py \
-            --prompt "${{ github.event.inputs.prompt }}" \
-            --youtube "${{ github.event.inputs.youtube_url }}"
+        if [ "${{ steps.vars.outputs.video_type }}" = "youtube" ]; then
+          if [ -n "${{ steps.vars.outputs.webhook_url }}" ]; then
+            if [ -n "${{ steps.vars.outputs.prompt }}" ]; then
+              python cli_analyzer.py \
+                --prompt "${{ steps.vars.outputs.prompt }}" \
+                --youtube "${{ steps.vars.outputs.youtube_url }}" \
+                --webhook "${{ steps.vars.outputs.webhook_url }}"
+            else
+              python cli_analyzer.py \
+                --youtube "${{ steps.vars.outputs.youtube_url }}" \
+                --webhook "${{ steps.vars.outputs.webhook_url }}"
+            fi
+          else
+            if [ -n "${{ steps.vars.outputs.prompt }}" ]; then
+              python cli_analyzer.py \
+                --prompt "${{ steps.vars.outputs.prompt }}" \
+                --youtube "${{ steps.vars.outputs.youtube_url }}"
+            else
+              python cli_analyzer.py \
+                --youtube "${{ steps.vars.outputs.youtube_url }}"
+            fi
+          fi
+        elif [ "${{ steps.vars.outputs.video_type }}" = "network_url" ]; then
+          if [ -n "${{ steps.vars.outputs.webhook_url }}" ]; then
+            if [ -n "${{ steps.vars.outputs.prompt }}" ]; then
+              python cli_analyzer.py \
+                --prompt "${{ steps.vars.outputs.prompt }}" \
+                --url "${{ steps.vars.outputs.network_url }}" \
+                --webhook "${{ steps.vars.outputs.webhook_url }}"
+            else
+              python cli_analyzer.py \
+                --url "${{ steps.vars.outputs.network_url }}" \
+                --webhook "${{ steps.vars.outputs.webhook_url }}"
+            fi
+          else
+            if [ -n "${{ steps.vars.outputs.prompt }}" ]; then
+              python cli_analyzer.py \
+                --prompt "${{ steps.vars.outputs.prompt }}" \
+                --url "${{ steps.vars.outputs.network_url }}"
+            else
+              python cli_analyzer.py \
+                --url "${{ steps.vars.outputs.network_url }}"
+            fi
+          fi
         fi

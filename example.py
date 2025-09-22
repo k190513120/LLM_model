@@ -6,54 +6,41 @@ Gemini 2.5 Pro 视频分析示例
 """
 
 import os
-from google import genai
+from gemini_video_analyzer import GeminiVideoAnalyzer
 
 def analyze_youtube_video_example():
-    """YouTube视频分析示例"""
+    """YouTube视频分析示例 - 使用默认的YouTube科技视频分析提示词"""
     
     # 设置API密钥 (请替换为您的实际API密钥)
-    api_key = os.getenv('GOOGLE_AI_API_KEY') or "YOUR_API_KEY_HERE"
+    api_key = os.getenv('GOOGLE_AI_API_KEY') or "AIzaSyCFtj3d4KB_2kxO74Jf3nUxnNhFu_2Kir0"
     
-    if api_key == "YOUR_API_KEY_HERE":
+    if not api_key or api_key == "AIzaSyCFtj3d4KB_2kxO74Jf3nUxnNhFu_2Kir0":
         print("请设置您的Google AI API密钥!")
         print("方法1: 设置环境变量 GOOGLE_AI_API_KEY")
         print("方法2: 直接修改此文件中的api_key变量")
         return
     
-    # 初始化客户端
-    client = genai.Client(api_key=api_key)
+    # 初始化分析器
+    analyzer = GeminiVideoAnalyzer(api_key)
     
-    # 示例YouTube视频链接和提示词
+    # 示例YouTube视频链接
     youtube_url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"  # 示例链接
-    prompt = "请详细描述这个视频的内容，包括场景、人物、音乐和整体氛围。"
     
-    print("=== Gemini 2.5 Pro 视频分析示例 ===")
+    print("=== Gemini YouTube视频分析示例 ===")
     print(f"视频链接: {youtube_url}")
-    print(f"分析提示: {prompt}")
+    print("使用默认的YouTube科技视频分析提示词")
     print("\n正在分析视频，请稍候...\n")
     
     try:
-        # 构建请求内容
-        contents = [
-            prompt,
-            {
-                "type": "video",
-                "video": {
-                    "source": "youtube",
-                    "url": youtube_url
-                }
-            }
-        ]
-        
-        # 调用Gemini API
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",  # 使用最新的模型
-            contents=contents
+        # 使用默认提示词分析视频（不传入prompt参数）
+        result = analyzer.analyze_youtube_video(
+            youtube_url=youtube_url,
+            model="gemini-2.5-flash"
         )
         
         # 输出结果
         print("=== 分析结果 ===")
-        print(response.text)
+        print(result)
         print("\n=== 分析完成 ===")
         
     except Exception as e:
@@ -67,13 +54,13 @@ def analyze_youtube_video_example():
 def analyze_with_custom_prompt():
     """使用自定义提示词分析视频"""
     
-    api_key = os.getenv('GOOGLE_AI_API_KEY') or "YOUR_API_KEY_HERE"
+    api_key = os.getenv('GOOGLE_AI_API_KEY') or "AIzaSyCFtj3d4KB_2kxO74Jf3nUxnNhFu_2Kir0"
     
-    if api_key == "YOUR_API_KEY_HERE":
+    if not api_key or api_key == "AIzaSyCFtj3d4KB_2kxO74Jf3nUxnNhFu_2Kir0":
         print("请先设置API密钥!")
         return
     
-    client = genai.Client(api_key=api_key)
+    analyzer = GeminiVideoAnalyzer(api_key)
     
     # 获取用户输入
     print("\n=== 自定义视频分析 ===")
@@ -82,33 +69,25 @@ def analyze_with_custom_prompt():
         print("视频链接不能为空!")
         return
     
-    prompt = input("请输入分析提示词 (留空使用默认): ").strip()
-    if not prompt:
-        prompt = "请描述这个视频的主要内容和特点。"
+    prompt = input("请输入分析提示词 (留空使用默认的YouTube科技视频分析提示词): ").strip()
     
     print(f"\n正在分析视频: {youtube_url}")
-    print(f"使用提示词: {prompt}")
+    if prompt:
+        print(f"使用自定义提示词: {prompt}")
+    else:
+        print("使用默认的YouTube科技视频分析提示词")
     print("\n分析中...\n")
     
     try:
-        contents = [
-            prompt,
-            {
-                "type": "video",
-                "video": {
-                    "source": "youtube",
-                    "url": youtube_url
-                }
-            }
-        ]
-        
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=contents
+        # 如果没有提供prompt，则使用默认提示词
+        result = analyzer.analyze_youtube_video(
+            youtube_url=youtube_url,
+            prompt=prompt if prompt else None,
+            model="gemini-2.5-flash"
         )
         
         print("=== 分析结果 ===")
-        print(response.text)
+        print(result)
         
     except Exception as e:
         print(f"分析失败: {str(e)}")
